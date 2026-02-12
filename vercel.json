@@ -4,16 +4,8 @@
     "outputDirectory": "dist",
     "rewrites": [
         {
-            "source": "/api/gemini/:path*",
-            "destination": "/api/gemini"
-        },
-        {
-            "source": "/api/replicate/status/:id",
-            "destination": "/api/replicate/status"
-        },
-        {
-            "source": "/api/health",
-            "destination": "/api/health"
+            "source": "/api/(.*)",
+            "destination": "/server/index.ts"
         }
     ]
 }

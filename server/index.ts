@@ -43,9 +43,15 @@ app.get('/api/health', (_req, res) => {
     });
 });
 
-app.listen(PORT, () => {
-    console.log(`\n🎬 AI Cine Director API Server`);
-    console.log(`   Running on http://localhost:${PORT}`);
-    console.log(`   Gemini Key: ${process.env.GEMINI_API_KEY ? '✅' : '❌'}`);
-    console.log(`   Replicate Token: ${process.env.REPLICATE_API_TOKEN ? '✅' : '❌'}\n`);
-});
+// For Vercel Serverless (Export the app)
+export default app;
+
+// For Local Development (Run the server)
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        console.log(`\n🎬 AI Cine Director API Server`);
+        console.log(`   Running on http://localhost:${PORT}`);
+        console.log(`   Gemini Key: ${process.env.GEMINI_API_KEY ? '✅' : '❌'}`);
+        console.log(`   Replicate Token: ${process.env.REPLICATE_API_TOKEN ? '✅' : '❌'}\n`);
+    });
+}
