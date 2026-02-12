@@ -66,13 +66,13 @@ You are writing instructions for an AI production pipeline.
 `;
 
         const response = await ai.models.generateContent({
-            model: 'gemini-3-pro-preview',
+            model: 'gemini-2.0-flash', // Switched to stable model
             contents: `Draft a 5-scene storyboard for: ${storyIdea}. Style: ${visualStyle}`,
             config: {
                 systemInstruction,
                 responseMimeType: 'application/json',
                 responseSchema,
-                thinkingConfig: { thinkingBudget: 8000 },
+                // thinkingConfig: { thinkingBudget: 8000 }, // Not supported by Flash
                 temperature: 0.7,
             },
         });

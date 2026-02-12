@@ -7,6 +7,18 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { geminiRouter } from './routes/gemini';
 import { replicateRouter } from './routes/replicate';
+import fetch from 'node-fetch';
+
+if (!globalThis.fetch) {
+    // @ts-ignore
+    globalThis.fetch = fetch;
+    // @ts-ignore
+    globalThis.Headers = fetch.Headers;
+    // @ts-ignore
+    globalThis.Request = fetch.Request;
+    // @ts-ignore
+    globalThis.Response = fetch.Response;
+}
 
 // 加载 .env.local
 dotenv.config({ path: '.env.local' });

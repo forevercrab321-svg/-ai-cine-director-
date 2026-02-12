@@ -143,6 +143,19 @@ const AuthPage: React.FC<AuthPageProps> = ({ lang, onLogin, onCompleteProfile, h
           </div>
           <h1 className="text-3xl font-extrabold text-white tracking-tighter mb-1">CINE-DIRECTOR AI</h1>
           <p className="text-slate-500 text-[10px] tracking-[0.3em] uppercase font-bold">Visionary Production Suite</p>
+
+          {/* Dev Bypass Button */}
+          {import.meta.env.DEV && (
+            <button
+              onClick={() => {
+                onCompleteProfile('Dev Director', 'Director');
+                onLogin();
+              }}
+              className="mt-4 px-3 py-1 bg-red-500/10 border border-red-500/50 text-red-400 text-[10px] rounded hover:bg-red-500/20 transition-colors"
+            >
+              Start Dev Session (Bypass Auth)
+            </button>
+          )}
         </div>
 
         {/* Email 输入步骤 */}
