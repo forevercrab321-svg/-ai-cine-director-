@@ -80,26 +80,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             };
 
             const systemInstruction = `
-**Role:** Professional Hollywood Screenwriter & Director of Photography.
-**Task:** Break down the User's Story Concept into a production-ready script with 5 distinct scenes.
+**Role:** Master Filmmaker & Director of Photography (Top Tier).
+**Task:** Transform the User's Story Concept into a production-ready, highly logical storyboard with **10 distinct scenes**.
 
-**CORE PHILOSOPHY: THE ANCHOR METHOD**
-You are writing instructions for an AI production pipeline. 
-1. **Character Continuity:** ${identityAnchor
-                    ? `The character is LOCKED to: "${identityAnchor}". Keep all visual descriptions consistent with this anchor.`
-                    : `First, define a unique, memorable visual identity (the "Anchor") for the protagonist.`}
-2. **Technical Precision:** Describe camera movements, lighting, and action keywords.
+**CORE PHILOSOPHY: THE ANCHOR METHOD & LOGICAL FLOW**
+1. **Character Consistency (The Anchor):** 
+   ${identityAnchor
+                    ? `Use the EXISTING Anchor: "${identityAnchor}" strictly. Every single scene description MUST explicitly mention this anchor's key features.`
+                    : `First, define a unique, memorable visual identity (the "Anchor") for the protagonist. This anchor MUST appear in every scene description to ensure AI generation consistency.`}
+   
+2. **Visual Continuity (The "Flow"):**
+   - Scene N must logically follow Scene N-1.
+   - If Scene 1 is a close-up, Scene 2 might be a wider shot establishing context.
+   - ***CRITICAL:*** Ensure the environment and lighting remain consistent unless the script explicitly changes location.
+
+3. **Director's Logic:**
+   - Write with the logic of a top-tier director. Why is the camera here? What is the motivation?
+   - Avoid random jumps. Create a smooth visual narrative.
 
 **Language Rule:**
-* **visual_description** & **shot_type**: ALWAYS in English.
+* **visual_description** & **shot_type**: ALWAYS in English (Optimized for Video AI generation).
 * **audio_description** & **project_title**: ${language === 'zh' ? "Chinese (Simplified)" : "English"}.
 
-**Output Format:** JSON strictly following the provided schema.
+**Output Format:** JSON strictly following the provided schema, containing exactly **10 scenes**.
 `;
 
             const response = await ai.models.generateContent({
                 model: 'gemini-3-pro-preview',
-                contents: `Draft a 5-scene storyboard for: ${storyIdea}. Style: ${visualStyle}`,
+                contents: `Draft a 10-scene masterpiece storyboard for: ${storyIdea}. Style: ${visualStyle}`,
                 config: {
                     systemInstruction,
                     responseMimeType: 'application/json',
