@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { UserCreditState, Language, ImageModel, VideoModel, VideoStyle, AspectRatio, VideoQuality, VideoDuration, VideoFps, VideoResolution } from '../types';
+import { UserCreditState, Language, ImageModel, VideoModel, VideoStyle, AspectRatio, VideoQuality, VideoDuration, VideoFps, VideoResolution, MODEL_COSTS } from '../types';
 
 interface UserProfile {
   id: string;
@@ -71,8 +71,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const [settings, setSettings] = useState<AppSettings>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('app_settings');
-      return saved ? { ...defaultSettings, ...JSON.parse(saved) } : defaultSettings;
+      try {
+        const saved = localStorage.getItem('app_settings');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+
+          // Migration: Validate videoModel against current available models
+          // If the saved model is no longer in our list (e.g. 'veo_3_1'), reset to default
+          // @ts-ignore
+          if (parsed.videoModel && !MODEL_COSTS[parsed.videoModel]) {
+            console.warn(`[Migration] Found obsolete video model: ${parsed.videoModel}. Resetting to default.`);
+            parsed.videoModel = defaultSettings.videoModel;
+          }
+
+          return { ...defaultSettings, ...parsed };
+        }
+      } catch (e) {
+        console.error("Failed to parse settings", e);
+      }
     }
     return defaultSettings;
   });
