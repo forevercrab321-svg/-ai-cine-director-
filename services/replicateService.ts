@@ -27,13 +27,12 @@ const REPLICATE_MODEL_MAP: Record<string, string> = {
   // Image models
   flux: "black-forest-labs/flux-1.1-pro",
   flux_schnell: "black-forest-labs/flux-schnell",
-  // Video models (use model paths, not version hashes)
-  hailuo_02: "minimax/video-01-live",
-  wan_2_5: "wan-video/wan2.1-i2v-480p-14b",
-  veo_3_1: "google-deepmind/veo-3",
-  pixverse_v5: "pixverse/pixverse-v4.5",
-  seedance_1_5_pro: "bytedance/seedance-1-lite",
-  sora_2_pro: "minimax/video-01"
+  // Video models — 5 best cost-performance I2V models (2025-07)
+  wan_2_2_fast: "wan-video/wan-2.2-i2v-fast",          // ~$0.05/video ⚡
+  hailuo_02_fast: "minimax/hailuo-02-fast",             // ~$0.12/video ⭐
+  seedance_lite: "bytedance/seedance-1-lite",           // ~$0.18/video
+  kling_2_5: "kwaivgi/kling-v2.5-turbo-pro",            // ~$0.35/video 🏆
+  hailuo_live: "minimax/video-01-live",                 // ~$0.50/video 🎭
 };
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
@@ -106,6 +105,53 @@ export const generateImage = async (
 };
 
 /**
+ * 构建每个模型的 input 参数 — 不同模型接受不同字段名
+ */
+function buildVideoInput(modelType: VideoModel, prompt: string, imageUrl: string): Record<string, any> {
+  switch (modelType) {
+    case 'wan_2_2_fast':
+      return {
+        prompt,
+        image: imageUrl,         // Wan 用 image
+        prompt_optimizer: true,
+      };
+    case 'hailuo_02_fast':
+      return {
+        prompt,
+        first_frame_image: imageUrl,  // MiniMax 用 first_frame_image
+        duration: 6,
+        resolution: "512P",
+        prompt_optimizer: true,
+      };
+    case 'seedance_lite':
+      return {
+        prompt,
+        image: imageUrl,             // Seedance 用 image
+        duration: 5,
+        resolution: "720p",
+      };
+    case 'kling_2_5':
+      return {
+        prompt,
+        image: imageUrl,             // Kling 用 image
+        duration: 5,
+      };
+    case 'hailuo_live':
+      return {
+        prompt,
+        first_frame_image: imageUrl,  // MiniMax Live 用 first_frame_image
+        prompt_optimizer: true,
+      };
+    default:
+      return {
+        prompt,
+        first_frame_image: imageUrl,
+        prompt_optimizer: true,
+      };
+  }
+}
+
+/**
  * 生成视频 - 通过后端代理调用 Replicate
  */
 export const startVideoTask = async (
@@ -124,18 +170,14 @@ export const startVideoTask = async (
   if (useMockMode) return generateMockVideo(prompt);
 
   const finalPrompt = characterAnchor ? `${characterAnchor}, ${prompt}` : prompt;
-  const modelIdentifier = REPLICATE_MODEL_MAP[modelType] || REPLICATE_MODEL_MAP['hailuo_02'];
+  const modelIdentifier = REPLICATE_MODEL_MAP[modelType] || REPLICATE_MODEL_MAP['hailuo_02_fast'];
 
   const response = await fetch(`${API_BASE}/predict`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       version: modelIdentifier,
-      input: {
-        prompt: finalPrompt,
-        first_frame_image: startImageUrl,
-        prompt_optimizer: true
-      }
+      input: buildVideoInput(modelType, finalPrompt, startImageUrl)
     })
   });
 

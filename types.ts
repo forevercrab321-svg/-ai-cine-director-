@@ -43,12 +43,11 @@ export type AspectRatio = '1:1' | '3:4' | '4:3' | '9:16' | '16:9';
 export type ImageModel = 'flux' | 'flux_schnell' | 'nano_banana';
 
 export type VideoModel =
-  | 'wan_2_5'
-  | 'hailuo_02'
-  | 'veo_3_1'
-  | 'pixverse_v5'
-  | 'seedance_1_5_pro'
-  | 'sora_2_pro';
+  | 'wan_2_2_fast'
+  | 'seedance_lite'
+  | 'hailuo_02_fast'
+  | 'hailuo_live'
+  | 'kling_2_5';
 
 export type GenerationMode = 'storyboard' | 'story';
 
@@ -135,50 +134,48 @@ export const STYLE_PRESETS: StylePreset[] = [
  * 最后更新: 2025-07
  */
 export const MODEL_COSTS: Record<VideoModel | 'DEFAULT', number> = {
-  wan_2_5: 38,         // API: ~$0.25/video → 25 × 1.5 ≈ 38
-  hailuo_02: 75,       // API: ~$0.50/video → 50 × 1.5 = 75
-  veo_3_1: 180,        // API: ~$1.20/8s video → 120 × 1.5 = 180
-  pixverse_v5: 45,     // API: ~$0.30/video → 30 × 1.5 = 45
-  seedance_1_5_pro: 30, // API: ~$0.20/video → 20 × 1.5 = 30
-  sora_2_pro: 75,      // API: ~$0.50/video → 50 × 1.5 = 75
-  DEFAULT: 75
+  wan_2_2_fast: 8,        // API: ~$0.05/video → 5 × 1.5 ≈ 8    ⚡ 最便宜
+  seedance_lite: 28,      // API: ~$0.18/video → 18 × 1.5 ≈ 28
+  hailuo_02_fast: 18,     // API: ~$0.12/video → 12 × 1.5 = 18
+  hailuo_live: 75,        // API: ~$0.50/video → 50 × 1.5 = 75   🎭 Live2D 专用
+  kling_2_5: 53,          // API: ~$0.35/video → 35 × 1.5 ≈ 53   🏆 最佳物理
+  DEFAULT: 28
 };
 
-export const MODEL_METADATA: Record<VideoModel, { label: string; tags: string[]; audio?: boolean; badge?: string; priceLabel?: string }> = {
-  wan_2_5: {
-    label: "Wan 2.5 (Alibaba)",
-    tags: ["⚡ Fast Draft", "💰 Best Value"],
-    badge: "Recommended",
-    priceLabel: "38 credits"
+export const MODEL_METADATA: Record<VideoModel, { label: string; tags: string[]; audio?: boolean; badge?: string; priceLabel: string; costUsd: string }> = {
+  wan_2_2_fast: {
+    label: "Wan 2.2 Fast (Alibaba)",
+    tags: ["⚡ 极速", "💰 最便宜"],
+    badge: "💰 Budget",
+    priceLabel: "8 credits",
+    costUsd: "$0.05"
   },
-  hailuo_02: {
-    label: "Hailuo Live (MiniMax)",
-    tags: ["🏃 Complex Motion", "Live2D"],
-    priceLabel: "75 credits"
+  hailuo_02_fast: {
+    label: "Hailuo-02 Fast (MiniMax)",
+    tags: ["⚡ 快速", "🎬 高质量"],
+    badge: "⭐ 推荐",
+    priceLabel: "18 credits",
+    costUsd: "$0.12"
   },
-  veo_3_1: {
-    label: "Veo 3 Fast (Google)",
-    tags: ["🎬 Narrative", "Consistency"],
-    priceLabel: "180 credits"
-  },
-  pixverse_v5: {
-    label: "PixVerse v4.5",
-    tags: ["🎨 Anime/Style Top", "Visuals"],
-    priceLabel: "45 credits"
-  },
-  seedance_1_5_pro: {
+  seedance_lite: {
     label: "Seedance Lite (ByteDance)",
-    tags: ["💰 Budget", "🎵 Audio"],
-    audio: true,
-    badge: "💰 Value",
-    priceLabel: "30 credits"
+    tags: ["🎨 风格多样", "720p"],
+    priceLabel: "28 credits",
+    costUsd: "$0.18"
   },
-  sora_2_pro: {
-    label: "Hailuo Video-01 (MiniMax)",
-    tags: ["💎 Cinema Quality", "Pro"],
-    audio: true,
+  kling_2_5: {
+    label: "Kling 2.5 Turbo (快影)",
+    tags: ["🏆 最佳物理", "🎬 电影级"],
     badge: "🔥 Pro",
-    priceLabel: "75 credits"
+    priceLabel: "53 credits",
+    costUsd: "$0.35"
+  },
+  hailuo_live: {
+    label: "Hailuo Live (MiniMax)",
+    tags: ["🎭 Live2D", "🎨 动画专用"],
+    badge: "🎭 Live2D",
+    priceLabel: "75 credits",
+    costUsd: "$0.50"
   }
 };
 

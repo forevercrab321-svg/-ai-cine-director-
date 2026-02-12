@@ -48,7 +48,7 @@ const DEFAULT_CREDITS = 50;
 const defaultSettings: AppSettings = {
   lang: 'en',
   imageModel: 'flux',
-  videoModel: 'veo_3_1',
+  videoModel: 'hailuo_02_fast',
   videoStyle: 'pop_mart',
   aspectRatio: '16:9',
   videoQuality: 'standard',
