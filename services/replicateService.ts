@@ -24,12 +24,16 @@ const getConfig = () => {
 };
 
 const REPLICATE_MODEL_MAP: Record<string, string> = {
+  // Image models
   flux: "black-forest-labs/flux-1.1-pro",
   flux_schnell: "black-forest-labs/flux-schnell",
-  hailuo_02: "14fbb04ce3568600d8327c6224e7233261765c010d540243467406a666991316",
-  wan_2_5: "lucataco/wan2.1-t2v-14b",
-  veo_3_1: "google-deepmind/veo",
-  pixverse_v5: "stability-ai/stable-video-diffusion"
+  // Video models (use model paths, not version hashes)
+  hailuo_02: "minimax/video-01-live",
+  wan_2_5: "wan-video/wan2.1-i2v-480p-14b",
+  veo_3_1: "google-deepmind/veo-3",
+  pixverse_v5: "pixverse/pixverse-v4.5",
+  seedance_1_5_pro: "bytedance/seedance-1-lite",
+  sora_2_pro: "minimax/video-01"
 };
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
@@ -120,7 +124,7 @@ export const startVideoTask = async (
   if (useMockMode) return generateMockVideo(prompt);
 
   const finalPrompt = characterAnchor ? `${characterAnchor}, ${prompt}` : prompt;
-  const modelIdentifier = REPLICATE_MODEL_MAP['hailuo_02'];
+  const modelIdentifier = REPLICATE_MODEL_MAP[modelType] || REPLICATE_MODEL_MAP['hailuo_02'];
 
   const response = await fetch(`${API_BASE}/predict`, {
     method: 'POST',
@@ -130,7 +134,6 @@ export const startVideoTask = async (
       input: {
         prompt: finalPrompt,
         first_frame_image: startImageUrl,
-        image: startImageUrl,
         prompt_optimizer: true
       }
     })
