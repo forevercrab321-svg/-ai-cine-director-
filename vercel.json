@@ -1,0 +1,23 @@
+{
+    "framework": "vite",
+    "buildCommand": "vite build",
+    "outputDirectory": "dist",
+    "rewrites": [
+        {
+            "source": "/api/gemini/:path*",
+            "destination": "/api/gemini"
+        },
+        {
+            "source": "/api/replicate/status/:id",
+            "destination": "/api/replicate/status"
+        },
+        {
+            "source": "/api/replicate/:path*",
+            "destination": "/api/replicate"
+        },
+        {
+            "source": "/api/health",
+            "destination": "/api/health"
+        }
+    ]
+}
