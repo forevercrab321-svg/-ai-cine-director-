@@ -38,6 +38,30 @@ const RefreshIcon = () => (
   </svg>
 );
 
+const DownloadIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+  </svg>
+);
+
+const downloadFile = async (url: string, filename: string) => {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(blobUrl);
+  } catch {
+    // Fallback: open in new tab
+    window.open(url, '_blank');
+  }
+};
+
 // Simulated terminal output logs
 const LOADING_LOGS = [
   "Initializing generative context...",
@@ -154,6 +178,13 @@ const SceneCard: React.FC<SceneCardProps> = ({
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300">
                   <div className="absolute top-3 right-3 flex gap-2">
                     <button
+                      onClick={() => downloadFile(imageUrl!, `scene-${scene.scene_number}-image.jpg`)}
+                      title="Download Image"
+                      className="p-2 bg-black/60 hover:bg-emerald-500 hover:text-white text-white rounded-full backdrop-blur-md transition-all border border-white/10"
+                    >
+                      <DownloadIcon />
+                    </button>
+                    <button
                       onClick={handleGenerateImage}
                       title="Regenerate Frame"
                       className="p-2 bg-black/60 hover:bg-white hover:text-black text-white rounded-full backdrop-blur-md transition-all border border-white/10"
@@ -198,7 +229,16 @@ const SceneCard: React.FC<SceneCardProps> = ({
                 </div>
               </div>
             ) : externalVideoUrl ? (
-              <video src={externalVideoUrl} controls className="w-full h-full object-cover" />
+              <div className="relative w-full h-full group/vidplay">
+                <video src={externalVideoUrl} controls className="w-full h-full object-cover" />
+                <button
+                  onClick={() => downloadFile(externalVideoUrl!, `scene-${scene.scene_number}-video.mp4`)}
+                  title="Download Video"
+                  className="absolute top-3 right-3 p-2 bg-black/60 hover:bg-emerald-500 hover:text-white text-white rounded-full backdrop-blur-md transition-all border border-white/10 opacity-0 group-hover/vidplay:opacity-100"
+                >
+                  <DownloadIcon />
+                </button>
+              </div>
             ) : (
               <button
                 onClick={onGenerateVideo}
