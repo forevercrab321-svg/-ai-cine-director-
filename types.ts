@@ -128,55 +128,72 @@ export const STYLE_PRESETS: StylePreset[] = [
   }
 ];
 
+/**
+ * Credit Pricing — 基于 Replicate API 实际成本 + 40-60% 利润
+ * 1 credit ≈ $0.01 USD
+ * 定价公式: API成本(USD) × 100 × 1.5(50%利润) ≈ credits
+ * 最后更新: 2025-07
+ */
 export const MODEL_COSTS: Record<VideoModel | 'DEFAULT', number> = {
-  wan_2_5: 50,
-  hailuo_02: 60,
-  veo_3_1: 80,
-  pixverse_v5: 90,
-  seedance_1_5_pro: 110,
-  sora_2_pro: 150,
-  DEFAULT: 60
+  wan_2_5: 38,         // API: ~$0.25/video → 25 × 1.5 ≈ 38
+  hailuo_02: 75,       // API: ~$0.50/video → 50 × 1.5 = 75
+  veo_3_1: 180,        // API: ~$1.20/8s video → 120 × 1.5 = 180
+  pixverse_v5: 45,     // API: ~$0.30/video → 30 × 1.5 = 45
+  seedance_1_5_pro: 30, // API: ~$0.20/video → 20 × 1.5 = 30
+  sora_2_pro: 75,      // API: ~$0.50/video → 50 × 1.5 = 75
+  DEFAULT: 75
 };
 
-export const MODEL_METADATA: Record<VideoModel, { label: string; tags: string[]; audio?: boolean; badge?: string }> = {
+export const MODEL_METADATA: Record<VideoModel, { label: string; tags: string[]; audio?: boolean; badge?: string; priceLabel?: string }> = {
   wan_2_5: {
     label: "Wan 2.5 (Alibaba)",
     tags: ["⚡ Fast Draft", "💰 Best Value"],
-    badge: "Recommended"
+    badge: "Recommended",
+    priceLabel: "38 credits"
   },
   hailuo_02: {
-    label: "Hailuo-02 (MiniMax)",
-    tags: ["🏃 Complex Motion", "Fluidity"]
+    label: "Hailuo Live (MiniMax)",
+    tags: ["🏃 Complex Motion", "Live2D"],
+    priceLabel: "75 credits"
   },
   veo_3_1: {
-    label: "Veo 3.1 Fast (Google)",
-    tags: ["🎬 Narrative", "Consistency"]
+    label: "Veo 3 Fast (Google)",
+    tags: ["🎬 Narrative", "Consistency"],
+    priceLabel: "180 credits"
   },
   pixverse_v5: {
-    label: "PixVerse v5",
-    tags: ["🎨 Anime/Style Top", "Visuals"]
+    label: "PixVerse v4.5",
+    tags: ["🎨 Anime/Style Top", "Visuals"],
+    priceLabel: "45 credits"
   },
   seedance_1_5_pro: {
-    label: "Seedance 1.5 Pro",
-    tags: ["🎵 Audio Sync", "Stable"],
+    label: "Seedance Lite (ByteDance)",
+    tags: ["💰 Budget", "🎵 Audio"],
     audio: true,
-    badge: "🎵 Audio"
+    badge: "💰 Value",
+    priceLabel: "30 credits"
   },
   sora_2_pro: {
-    label: "Sora 2.0 Pro",
-    tags: ["💎 Cinema Quality", "14B Parameters"],
+    label: "Hailuo Video-01 (MiniMax)",
+    tags: ["💎 Cinema Quality", "Pro"],
     audio: true,
-    badge: "🔥 Ultimate"
+    badge: "🔥 Pro",
+    priceLabel: "75 credits"
   }
 };
 
+/**
+ * Image & misc credit costs
+ * flux-1.1-pro: API $0.04/img → 4 × 1.5 = 6
+ * flux-schnell: API $0.003/img → minimum 1 credit
+ */
 export const CREDIT_COSTS = {
-  IMAGE_FLUX: 2,
-  IMAGE_FLUX_SCHNELL: 1,
+  IMAGE_FLUX: 6,           // API: $0.04/image
+  IMAGE_FLUX_SCHNELL: 1,   // API: $0.003/image (minimum charge)
   IMAGE_NANO: 0,
   VIDEO_STABLE: 1,
-  QUALITY_PRO_EXTRA: 5,
-  RES_1080P_EXTRA: 5
+  QUALITY_PRO_EXTRA: 8,    // 1080p / Pro quality surcharge
+  RES_1080P_EXTRA: 8
 };
 
 export interface UserCreditState {
