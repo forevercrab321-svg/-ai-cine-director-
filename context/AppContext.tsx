@@ -33,7 +33,7 @@ interface AppContextType {
   settings: AppSettings;
 
   // Actions
-  login: () => void; // Triggered after successful auth
+  login: (bypass?: boolean) => void; // Triggered after successful auth
   completeProfile: (name: string, role: string) => Promise<void>;
   logout: () => Promise<void>;
   toggleLang: () => void;
@@ -139,8 +139,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
-  const login = () => {
-    // This is now handled by onAuthStateChange
+  // Check for bypass flag on mount
+  useEffect(() => {
+    if (import.meta.env.DEV && localStorage.getItem('dev_bypass') === 'true') {
+      setIsAuthenticated(true);
+      setProfile({ id: 'dev-id', name: 'Dev Director', role: 'Director' });
+      setUserState({ balance: 9999, isPro: true, isAdmin: true });
+    }
+  }, []);
+
+  const login = (bypass: boolean = false) => {
+    if (bypass) {
+      setIsAuthenticated(true);
+      setProfile({ id: 'dev-id', name: 'Dev Director', role: 'Director' });
+      setUserState({ balance: 9999, isPro: true, isAdmin: true });
+      localStorage.setItem('dev_bypass', 'true');
+    }
   };
 
   const completeProfile = async (name: string, role: string) => {

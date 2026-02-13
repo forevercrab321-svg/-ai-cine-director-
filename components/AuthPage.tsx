@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabaseClient';
 
 interface AuthPageProps {
   lang: Language;
-  onLogin: () => void;
+  onLogin: (bypass?: boolean) => void;
   onCompleteProfile: (name: string, role: string) => void;
   hasProfile: boolean;
 }
@@ -149,7 +149,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ lang, onLogin, onCompleteProfile, h
             <button
               onClick={() => {
                 onCompleteProfile('Dev Director', 'Director');
-                onLogin();
+                onLogin(true);
               }}
               className="mt-4 px-3 py-1 bg-red-500/10 border border-red-500/50 text-red-400 text-[10px] rounded hover:bg-red-500/20 transition-colors"
             >
