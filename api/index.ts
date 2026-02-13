@@ -84,7 +84,7 @@ app.post('/api/gemini/generate', async (req, res) => {
 `;
 
         const response = await ai.models.generateContent({
-            model: 'gemini-1.5-flash',
+            model: 'gemini-2.0-flash',
             contents: `Draft a 5-scene storyboard for: ${storyIdea}. Style: ${visualStyle}`,
             config: {
                 systemInstruction,
