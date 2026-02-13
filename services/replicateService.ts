@@ -107,44 +107,54 @@ export const generateImage = async (
 /**
  * 构建每个模型的 input 参数 — 不同模型接受不同字段名
  */
+// 强制的一致性 Prompt 前缀
+const STRICT_CONSISTENCY = "High fidelity. Strict consistency with the first frame. Do not change the character face or costume. Smooth motion.";
+
+/**
+ * 构建每个模型的 input 参数 — 不同模型接受不同字段名
+ */
 function buildVideoInput(modelType: VideoModel, prompt: string, imageUrl: string): Record<string, any> {
+  // 组合最终 prompt
+  const strictPrompt = `${STRICT_CONSISTENCY} ${prompt}`;
+
   switch (modelType) {
     case 'wan_2_2_fast':
       return {
-        prompt,
-        image: imageUrl,         // Wan 用 image
+        prompt: strictPrompt,
+        image: imageUrl,
         prompt_optimizer: true,
       };
     case 'hailuo_02_fast':
       return {
-        prompt,
-        first_frame_image: imageUrl,  // MiniMax 用 first_frame_image
+        prompt: strictPrompt,
+        first_frame_image: imageUrl,
         duration: 6,
-        resolution: "512P",
-        prompt_optimizer: true,
+        resolution: "1280x720", // 强制 720p 以提高细节一致性 (Was 512P)
+        prompt_optimizer: true, // Minimax optimizers usually help, but sometimes drift. Keep it for now.
       };
     case 'seedance_lite':
       return {
-        prompt,
-        image: imageUrl,             // Seedance 用 image
+        prompt: strictPrompt,
+        image: imageUrl,
         duration: 5,
         resolution: "720p",
       };
     case 'kling_2_5':
       return {
-        prompt,
-        image: imageUrl,             // Kling 用 image
+        prompt: strictPrompt,
+        image: imageUrl,
         duration: 5,
+        cfg_scale: 0.8, // 增加相关性权重
       };
     case 'hailuo_live':
       return {
-        prompt,
-        first_frame_image: imageUrl,  // MiniMax Live 用 first_frame_image
+        prompt: strictPrompt,
+        first_frame_image: imageUrl,
         prompt_optimizer: true,
       };
     default:
       return {
-        prompt,
+        prompt: strictPrompt,
         first_frame_image: imageUrl,
         prompt_optimizer: true,
       };
