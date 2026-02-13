@@ -141,7 +141,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Check for bypass flag on mount
   useEffect(() => {
-    if (import.meta.env.DEV && localStorage.getItem('dev_bypass') === 'true') {
+    // Check for bypass flag (Enabled for Prod Testing)
+    if (localStorage.getItem('dev_bypass') === 'true') {
       setIsAuthenticated(true);
       setProfile({ id: 'dev-id', name: 'Dev Director', role: 'Director' });
       setUserState({ balance: 9999, isPro: true, isAdmin: true });
