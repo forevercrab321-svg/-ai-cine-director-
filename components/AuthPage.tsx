@@ -144,8 +144,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ lang, onLogin, onCompleteProfile, h
           <h1 className="text-3xl font-extrabold text-white tracking-tighter mb-1">CINE-DIRECTOR AI</h1>
           <p className="text-slate-500 text-[10px] tracking-[0.3em] uppercase font-bold">Visionary Production Suite</p>
 
-          {/* Dev Bypass Button - Enabled for Prod Testing */}
-          {(true) && (
+          {/* Dev Bypass Button - Only for Local Dev */}
+          {(import.meta.env.DEV) && (
             <button
               onClick={() => {
                 onCompleteProfile('Dev Director', 'Director');
