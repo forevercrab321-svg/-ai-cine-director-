@@ -66,13 +66,12 @@ You are writing instructions for an AI production pipeline.
 `;
 
         const response = await ai.models.generateContent({
-            model: 'gemini-2.0-flash', // Switched to stable model
+            model: 'gemini-1.5-flash', // Downgrade to 1.5 Flash for Vercel stability
             contents: `Draft a 5-scene storyboard for: ${storyIdea}. Style: ${visualStyle}`,
             config: {
                 systemInstruction,
                 responseMimeType: 'application/json',
                 responseSchema,
-                // thinkingConfig: { thinkingBudget: 8000 }, // Not supported by Flash
                 temperature: 0.7,
             },
         });
@@ -89,8 +88,13 @@ You are writing instructions for an AI production pipeline.
 
         res.json(project);
     } catch (error: any) {
-        console.error('[Gemini] Error:', error.message);
-        res.status(500).json({ error: error.message || 'Gemini generation failed' });
+        console.error('[Gemini] Error:', error);
+        // Return full error details for debugging Vercel
+        res.status(500).json({
+            error: error.message || 'Gemini generation failed',
+            details: error.toString(),
+            stack: error.stack
+        });
     }
 });
 
