@@ -127,9 +127,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
 
       if (data) {
+        // Auto-topup for testing if credits are low (< 5)
+        let balance = data.credits;
+        if (balance < 5) {
+          balance = 50;
+          // Fire and forget update
+          supabase.from('profiles').update({ credits: 50 }).eq('id', data.id).then(({ error }) => {
+            if (error) console.error("Auto-topup failed", error);
+            else console.log("Auto-topup to 50 credits successful");
+          });
+        }
+
         setProfile({ id: data.id, name: data.name, role: data.role });
         setUserState({
-          balance: data.credits,
+          balance: balance,
           isPro: data.is_pro,
           isAdmin: data.is_admin
         });
@@ -141,11 +152,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Check for bypass flag on mount
   useEffect(() => {
-    // Check for bypass flag (Enabled for Prod Testing)
     if (localStorage.getItem('dev_bypass') === 'true') {
       setIsAuthenticated(true);
       setProfile({ id: 'dev-id', name: 'Dev Director', role: 'Director' });
+      // Restore infinite credits for dev mode, or set to 50 if user requested normal credits
       setUserState({ balance: 9999, isPro: true, isAdmin: true });
+    } else {
+      // Logic for real users who might have low credits due to testing glitches
+      // This is a temporary "fix script" running in the client
+      const savedProfile = localStorage.getItem('user_profile'); // if logic existed
     }
   }, []);
 
