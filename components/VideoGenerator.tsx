@@ -144,15 +144,6 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ project, onBackToScript
             }
 
             try {
-                // Modified to not use executeImageGeneration wrapper which checks global state again
-                // We inline the logic or rely on this check being enough if we update executeImageGeneration to be "safe"
-                // Actually, executeImageGeneration checks global state. 
-                // Let's rely on the local check here to break EARLY, but we also need to deduct locally.
-
-                // We will manually call generateImage here to control flow better or just trust the wrapper
-                // but we need to update currentBalance.
-                // Simpler: Just rely on the pre-check here.
-
                 await executeImageGeneration(scene);
                 currentBalance -= cost; // Update local tracker
             } catch (e) {

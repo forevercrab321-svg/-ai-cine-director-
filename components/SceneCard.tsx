@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Scene, Language, ImageModel, VideoModel, VideoStyle, AspectRatio, GenerationMode, VideoQuality, VideoDuration, VideoFps, VideoResolution, CREDIT_COSTS, STYLE_PRESETS, MODEL_COSTS, MODEL_MULTIPLIERS } from '../types';
 import { PhotoIcon, VideoCameraIcon, LoaderIcon } from './IconComponents';
 import { generateImage } from '../services/replicateService';
+import { useAppContext } from '../context/AppContext';
 import { t } from '../i18n';
 
 interface SceneCardProps {
@@ -116,6 +117,7 @@ const SceneCard: React.FC<SceneCardProps> = ({
   userCredits,
   isAuthenticated
 }) => {
+  const { openPricingModal, userState } = useAppContext();
   const [isImageLoading, setIsImageLoading] = useState(false);
 
   // Calculate costs
@@ -130,8 +132,8 @@ const SceneCard: React.FC<SceneCardProps> = ({
     }
 
     const cost = imageModel === 'flux_schnell' ? CREDIT_COSTS.IMAGE_FLUX_SCHNELL : CREDIT_COSTS.IMAGE_FLUX;
-    if (userCredits < cost) {
-      alert("Insufficient credits. Current balance: " + userCredits);
+    if (!userState.isAdmin && userCredits < cost) {
+      openPricingModal();
       return;
     }
 
@@ -159,6 +161,14 @@ const SceneCard: React.FC<SceneCardProps> = ({
     } finally {
       setIsImageLoading(false);
     }
+  };
+
+  const handleGenerateVideoClick = () => {
+    if (!userState.isAdmin && userCredits < videoCost) {
+      openPricingModal();
+      return;
+    }
+    if (onGenerateVideo) onGenerateVideo();
   };
 
   return (
@@ -253,8 +263,8 @@ const SceneCard: React.FC<SceneCardProps> = ({
               </div>
             ) : (
               <button
-                onClick={onGenerateVideo}
-                disabled={!imageUrl || isImageLoading || userCredits < videoCost}
+                onClick={handleGenerateVideoClick}
+                disabled={!imageUrl || isImageLoading}
                 className={`relative group/btn w-full h-full flex flex-col items-center justify-center gap-3 transition-all
                   ${!imageUrl || isImageLoading
                     ? 'opacity-30 cursor-not-allowed'
