@@ -127,14 +127,34 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ project, onBackToScript
         const total = project.scenes.length;
         setImageProgress({ completed, total });
 
+        let currentBalance = userState.balance; // Local tracking
+
         for (const scene of project.scenes) {
             if (sceneImages[scene.scene_number]) {
                 completed++;
                 setImageProgress({ completed, total });
                 continue;
             }
+
+            // Check local balance
+            const cost = settings.imageModel === 'flux_schnell' ? CREDIT_COSTS.IMAGE_FLUX_SCHNELL : CREDIT_COSTS.IMAGE_FLUX;
+            if (!userState.isAdmin && currentBalance < cost) {
+                openPricingModal();
+                break; // Stop processing
+            }
+
             try {
+                // Modified to not use executeImageGeneration wrapper which checks global state again
+                // We inline the logic or rely on this check being enough if we update executeImageGeneration to be "safe"
+                // Actually, executeImageGeneration checks global state. 
+                // Let's rely on the local check here to break EARLY, but we also need to deduct locally.
+
+                // We will manually call generateImage here to control flow better or just trust the wrapper
+                // but we need to update currentBalance.
+                // Simpler: Just rely on the pre-check here.
+
                 await executeImageGeneration(scene);
+                currentBalance -= cost; // Update local tracker
             } catch (e) {
                 console.error(e);
             }
@@ -147,6 +167,8 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ project, onBackToScript
     const handleRenderVideos = async () => {
         if (!isAuthenticated) return alert("Please sign in to generate videos.");
 
+        let currentBalance = userState.balance; // Local tracking
+
         for (const scene of project.scenes) {
             const sNum = scene.scene_number;
             if (activeVideoJobs[sNum] || sceneStatus[sNum]?.status === 'done') continue;
@@ -154,7 +176,14 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ project, onBackToScript
             let imgUrl = sceneImages[sNum];
             if (!imgUrl) {
                 try {
+                    // Check balance for image gen if needed
+                    const imgCost = settings.imageModel === 'flux_schnell' ? CREDIT_COSTS.IMAGE_FLUX_SCHNELL : CREDIT_COSTS.IMAGE_FLUX;
+                    if (!userState.isAdmin && currentBalance < imgCost) {
+                        openPricingModal();
+                        break;
+                    }
                     imgUrl = await executeImageGeneration(scene);
+                    currentBalance -= imgCost;
                 } catch (e) {
                     continue;
                 }
@@ -164,7 +193,7 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ project, onBackToScript
             const multiplier = MODEL_MULTIPLIERS[settings.videoModel] || 1.0;
             const finalCost = Math.ceil(baseCost * multiplier);
 
-            if (!userState.isAdmin && userState.balance < finalCost) {
+            if (!userState.isAdmin && currentBalance < finalCost) {
                 openPricingModal();
                 break;
             }
@@ -184,6 +213,8 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ project, onBackToScript
                 );
 
                 deductCredits(finalCost, { model: settings.videoModel, base: baseCost, mult: multiplier });
+                currentBalance -= finalCost; // Update local tracker
+
                 setActiveVideoJobs(prev => ({ ...prev, [sNum]: { id: res.id, startTime: Date.now() } }));
                 setScenePredictionIds(prev => ({ ...prev, [sNum]: res.id }));
                 setSceneStatus(prev => ({ ...prev, [sNum]: { status: 'starting', message: '🚀 Sent to Replicate' } }));
