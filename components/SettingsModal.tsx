@@ -202,27 +202,27 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
                 {/* Budget Tier */}
                 <optgroup label="💰 Budget (极速出片)">
                   <option value="wan_2_2_fast">
-                    {getModelLabel('wan_2_2_fast')} (💎 {MODEL_COSTS.wan_2_2_fast} ≈ {MODEL_METADATA.wan_2_2_fast.costUsd})
+                    {getModelLabel('wan_2_2_fast')} (💎 {Math.ceil(MODEL_COSTS.wan_2_2_fast * (MODEL_MULTIPLIERS.wan_2_2_fast || 1))})
                   </option>
                   <option value="hailuo_02_fast">
-                    {getModelLabel('hailuo_02_fast')} (💎 {MODEL_COSTS.hailuo_02_fast} ≈ {MODEL_METADATA.hailuo_02_fast.costUsd})
+                    {getModelLabel('hailuo_02_fast')} (💎 {Math.ceil(MODEL_COSTS.hailuo_02_fast * (MODEL_MULTIPLIERS.hailuo_02_fast || 1))})
                   </option>
                 </optgroup>
 
                 {/* Standard Tier */}
                 <optgroup label="⭐ Standard (均衡之选)">
                   <option value="seedance_lite">
-                    {getModelLabel('seedance_lite')} (💎 {MODEL_COSTS.seedance_lite} ≈ {MODEL_METADATA.seedance_lite.costUsd})
+                    {getModelLabel('seedance_lite')} (💎 {Math.ceil(MODEL_COSTS.seedance_lite * (MODEL_MULTIPLIERS.seedance_lite || 1))})
                   </option>
                 </optgroup>
 
                 {/* Pro Tier */}
                 <optgroup label="🔥 Pro (顶级画质)">
                   <option value="kling_2_5">
-                    {getModelLabel('kling_2_5')} (💎 {MODEL_COSTS.kling_2_5} ≈ {MODEL_METADATA.kling_2_5.costUsd})
+                    {getModelLabel('kling_2_5')} (💎 {Math.ceil(MODEL_COSTS.kling_2_5 * (MODEL_MULTIPLIERS.kling_2_5 || 1))})
                   </option>
                   <option value="hailuo_live">
-                    {getModelLabel('hailuo_live')} (💎 {MODEL_COSTS.hailuo_live} ≈ {MODEL_METADATA.hailuo_live.costUsd})
+                    {getModelLabel('hailuo_live')} (💎 {Math.ceil(MODEL_COSTS.hailuo_live * (MODEL_MULTIPLIERS.hailuo_live || 1))})
                   </option>
                 </optgroup>
               </select>

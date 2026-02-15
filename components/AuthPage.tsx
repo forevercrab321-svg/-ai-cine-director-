@@ -145,17 +145,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ lang, onLogin, onCompleteProfile, h
           <p className="text-slate-500 text-[10px] tracking-[0.3em] uppercase font-bold">Visionary Production Suite</p>
 
           {/* Dev Bypass Button - Only for Local Dev */}
-          {(import.meta.env.DEV) && (
-            <button
-              onClick={() => {
-                onCompleteProfile('Dev Director', 'Director');
-                onLogin(true);
-              }}
-              className="mt-4 px-3 py-1 bg-red-500/10 border border-red-500/50 text-red-400 text-[10px] rounded hover:bg-red-500/20 transition-colors"
-            >
-              Start Dev Session (Bypass Auth)
-            </button>
-          )}
+          {/* Dev Bypass Removed for Strict Auth */}
         </div>
 
         {/* Email 输入步骤 */}

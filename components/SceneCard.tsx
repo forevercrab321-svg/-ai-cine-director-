@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Scene, Language, ImageModel, VideoModel, VideoStyle, AspectRatio, GenerationMode, VideoQuality, VideoDuration, VideoFps, VideoResolution, CREDIT_COSTS, STYLE_PRESETS } from '../types';
+import { Scene, Language, ImageModel, VideoModel, VideoStyle, AspectRatio, GenerationMode, VideoQuality, VideoDuration, VideoFps, VideoResolution, CREDIT_COSTS, STYLE_PRESETS, MODEL_COSTS, MODEL_MULTIPLIERS } from '../types';
 import { PhotoIcon, VideoCameraIcon, LoaderIcon } from './IconComponents';
 import { generateImage } from '../services/replicateService';
 import { t } from '../i18n';
@@ -101,6 +101,7 @@ const TerminalLoader = () => {
 const SceneCard: React.FC<SceneCardProps> = ({
   scene,
   imageModel,
+  videoModel,
   videoStyle,
   aspectRatio,
   imageUrl,
@@ -112,11 +113,22 @@ const SceneCard: React.FC<SceneCardProps> = ({
   errorDetails,
   characterAnchor,
   onDeductCredits,
-  userCredits
+  userCredits,
+  isAuthenticated
 }) => {
   const [isImageLoading, setIsImageLoading] = useState(false);
 
+  // Calculate costs
+  const videoBaseCost = MODEL_COSTS[videoModel] || 28;
+  const videoMultiplier = MODEL_MULTIPLIERS[videoModel] || 1.0;
+  const videoCost = Math.ceil(videoBaseCost * videoMultiplier);
+
   const handleGenerateImage = async () => {
+    if (!isAuthenticated) {
+      alert("Please sign in to generate images.");
+      return;
+    }
+
     const cost = imageModel === 'flux_schnell' ? CREDIT_COSTS.IMAGE_FLUX_SCHNELL : CREDIT_COSTS.IMAGE_FLUX;
     if (userCredits < cost) {
       alert("Insufficient credits. Current balance: " + userCredits);
@@ -242,7 +254,7 @@ const SceneCard: React.FC<SceneCardProps> = ({
             ) : (
               <button
                 onClick={onGenerateVideo}
-                disabled={!imageUrl || isImageLoading}
+                disabled={!imageUrl || isImageLoading || userCredits < videoCost}
                 className={`relative group/btn w-full h-full flex flex-col items-center justify-center gap-3 transition-all
                   ${!imageUrl || isImageLoading
                     ? 'opacity-30 cursor-not-allowed'
@@ -250,7 +262,16 @@ const SceneCard: React.FC<SceneCardProps> = ({
                 `}
               >
                 <VideoCameraIcon className="w-8 h-8 text-slate-500 group-hover/btn:text-rose-500 transition-colors" />
-                {!imageUrl && <span className="text-[10px] font-mono text-slate-600">Waiting for source image...</span>}
+                {!imageUrl ? (
+                  <span className="text-[10px] font-mono text-slate-600">Waiting for source image...</span>
+                ) : (
+                  <div className="flex flex-col items-center gap-1">
+                    <span className="text-xs font-bold tracking-widest uppercase group-hover/btn:text-white transition-colors">Generate Motion</span>
+                    <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full border border-slate-700 group-hover/btn:border-rose-500/50 group-hover/btn:text-rose-400 transition-all">
+                      {videoCost} 💎
+                    </span>
+                  </div>
+                )}
               </button>
             )}
           </div>

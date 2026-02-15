@@ -38,9 +38,15 @@ interface AppContextType {
   logout: () => Promise<void>;
   toggleLang: () => void;
   updateSettings: (newSettings: Partial<AppSettings>) => void;
-  deductCredits: (amount: number) => Promise<boolean>;
+  deductCredits: (amount: number, details?: { model: string, base: number, mult: number }) => Promise<boolean>;
   upgradeUser: (tier: 'creator' | 'director') => Promise<void>;
+  buyCredits: (amount: number, cost: number) => Promise<void>;
   enableGodMode: () => void;
+
+  // UI Contol
+  isPricingOpen: boolean;
+  openPricingModal: () => void;
+  closePricingModal: () => void;
 }
 
 const DEFAULT_CREDITS = 50;
@@ -67,51 +73,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [session, setSession] = useState<any>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [userState, setUserState] = useState<UserCreditState>({ balance: 0, isPro: false, isAdmin: false });
-
-  const [settings, setSettings] = useState<AppSettings>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('app_settings');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-
-          // Migration: Validate videoModel against current available models
-          // If the saved model is no longer in our list (e.g. 'veo_3_1'), reset to default
-          // @ts-ignore
-          if (parsed.videoModel && !MODEL_COSTS[parsed.videoModel]) {
-            console.warn(`[Migration] Found obsolete video model: ${parsed.videoModel}. Resetting to default.`);
-            parsed.videoModel = defaultSettings.videoModel;
-          }
-
-          return { ...defaultSettings, ...parsed };
-        }
-      } catch (e) {
-        console.error("Failed to parse settings", e);
-      }
-    }
-    return defaultSettings;
+  const [isPricingOpen, setIsPricingOpen] = useState(false);
+  const [userState, setUserState] = useState<UserCreditState>({
+    balance: 0,
+    isPro: false,
+    isAdmin: false,
+    monthlyUsage: 0,
+    planType: 'creator'
   });
 
-  // Persist settings
-  useEffect(() => {
-    localStorage.setItem('app_settings', JSON.stringify(settings));
-  }, [settings]);
+  const [settings, setSettings] = useState<AppSettings>(defaultSettings);
 
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setIsAuthenticated(!!session);
-      if (session) {
-        fetchProfile(session.user.id);
-      } else {
-        setProfile(null);
-        setUserState({ balance: 0, isPro: false, isAdmin: false });
-      }
-    });
+  const updateSettings = (newSettings: Partial<AppSettings>) => {
+    setSettings(prev => ({ ...prev, ...newSettings }));
+  };
 
-    return () => subscription.unsubscribe();
-  }, []);
+  const toggleLang = () => {
+    setSettings(prev => ({ ...prev, lang: prev.lang === 'en' ? 'zh' : 'en' }));
+  };
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -127,22 +106,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
 
       if (data) {
-        // Auto-topup for testing if credits are low (< 5)
-        let balance = data.credits;
-        if (balance < 5) {
-          balance = 50;
-          // Fire and forget update
-          supabase.from('profiles').update({ credits: 50 }).eq('id', data.id).then(({ error }) => {
-            if (error) console.error("Auto-topup failed", error);
-            else console.log("Auto-topup to 50 credits successful");
-          });
-        }
+        // Auto-topup REMOVED to fix infinite credit bug
+        // if (balance < 5) ...
 
         setProfile({ id: data.id, name: data.name, role: data.role });
         setUserState({
-          balance: balance,
+          balance: data.credits,
           isPro: data.is_pro,
-          isAdmin: data.is_admin
+          isAdmin: data.is_admin,
+          monthlyUsage: data.monthly_credits_used || 0,
+          planType: data.plan_type || 'creator'
         });
       }
     } catch (error) {
@@ -150,115 +123,132 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
-  // Check for bypass flag on mount
-  useEffect(() => {
-    if (localStorage.getItem('dev_bypass') === 'true') {
-      setIsAuthenticated(true);
-      setProfile({ id: 'dev-id', name: 'Dev Director', role: 'Director' });
-      // Restore infinite credits for dev mode, or set to 50 if user requested normal credits
-      setUserState({ balance: 9999, isPro: true, isAdmin: true });
-    } else {
-      // Logic for real users who might have low credits due to testing glitches
-      // This is a temporary "fix script" running in the client
-      const savedProfile = localStorage.getItem('user_profile'); // if logic existed
-    }
-  }, []);
+  // ... (bypass logic) ...
 
-  const login = (bypass: boolean = false) => {
-    if (bypass) {
-      setIsAuthenticated(true);
-      setProfile({ id: 'dev-id', name: 'Dev Director', role: 'Director' });
-      setUserState({ balance: 9999, isPro: true, isAdmin: true });
-      localStorage.setItem('dev_bypass', 'true');
-    }
-  };
+  // ... (bypass logic removed)
 
-  const completeProfile = async (name: string, role: string) => {
-    if (!session?.user) return;
-
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .upsert({
-          id: session.user.id,
-          name,
-          role,
-          credits: DEFAULT_CREDITS
-        });
-
-      if (error) throw error;
-
-      // Refresh profile
-      fetchProfile(session.user.id);
-    } catch (error) {
-      console.error('Error updating profile:', error);
-    }
+  const login = () => {
+    // Standard login trigger - just updates state if needed or called after auth
+    // In Supabase auth, the session listener handles the actual state update
+    // This function might be redundant or used for specific triggers
   };
 
   const logout = async () => {
     await supabase.auth.signOut();
-    localStorage.removeItem('is_authenticated');
-    localStorage.removeItem('user_profile');
+    setSession(null);
+    setIsAuthenticated(false);
+    setProfile(null);
   };
 
-  const toggleLang = () => {
-    setSettings(prev => ({ ...prev, lang: prev.lang === 'en' ? 'zh' : 'en' }));
+  const completeProfile = async (name: string, role: string) => {
+    if (!session?.user) return;
+    const updates = {
+      id: session.user.id,
+      name,
+      role,
+      updated_at: new Date(),
+    };
+
+    const { error } = await supabase.from('profiles').upsert(updates);
+    if (error) {
+      console.error('Error updating profile:', error);
+      return;
+    }
+
+    await fetchProfile(session.user.id);
   };
 
-  const updateSettings = (newSettings: Partial<AppSettings>) => {
-    setSettings(prev => ({ ...prev, ...newSettings }));
-  };
-
-  const deductCredits = async (amount: number): Promise<boolean> => {
+  const deductCredits = async (amount: number, details?: { model: string, base: number, mult: number }): Promise<boolean> => {
     if (userState.isAdmin) return true;
     if (userState.balance < amount) return false;
 
     if (session?.user) {
-      const { error } = await supabase.rpc('deduct_credits', { amount_to_deduct: amount });
+      // Call updated RPC with logging details
+      const { error } = await supabase.rpc('deduct_credits', {
+        amount_to_deduct: amount,
+        model_used: details?.model || 'unknown',
+        base_cost: details?.base || 0,
+        multiplier: details?.mult || 1
+      });
+
       if (error) {
-        // Fallback: client side update then sync? No, better to stick to server source of truth or optimistic update
-        // For now, let's do optimistic update locally and let subscription/fetch fix it?
-        // Since we don't have the RPC function defined in schema yet, let's do direct update
+        // Fallback: direct update if RPC fails or not deployed
+        console.warn("RPC failed, using direct update fallback", error);
         const { error: updateError } = await supabase
           .from('profiles')
-          .update({ credits: userState.balance - amount })
+          .update({
+            credits: userState.balance - amount,
+            monthly_credits_used: userState.monthlyUsage + amount
+          })
           .eq('id', session.user.id);
 
         if (updateError) {
           console.error("Failed to deduct credits", updateError);
           return false;
         }
-
-        setUserState(prev => ({ ...prev, balance: prev.balance - amount }));
-        return true;
       }
+
+      // Optimistic update
+      setUserState(prev => ({
+        ...prev,
+        balance: prev.balance - amount,
+        monthlyUsage: prev.monthlyUsage + amount
+      }));
+      return true;
     }
 
-    // Fallback for strictness
-    setUserState(prev => ({ ...prev, balance: prev.balance - amount }));
+    // Fallback for non-session (shouldn't happen in prod)
+    setUserState(prev => ({
+      ...prev,
+      balance: prev.balance - amount,
+      monthlyUsage: prev.monthlyUsage + amount
+    }));
     return true;
+  };
+
+  const buyCredits = async (amount: number, cost: number) => {
+    if (!session?.user) return;
+
+    // Simulate Stripe Payment here
+    // In real app: createStripeCheckout -> wait for webhook -> webhook calls RPC to add credits
+    // Here: Direct update
+    const { error } = await supabase.rpc('add_credits', { amount_to_add: amount }); // assuming we might add this RPC later
+
+    // Fallback direct update
+    if (error) {
+      await supabase
+        .from('profiles')
+        .update({
+          credits: userState.balance + amount,
+          has_purchased_credits: true
+        })
+        .eq('id', session.user.id);
+    }
+
+    setUserState(prev => ({ ...prev, balance: prev.balance + amount }));
   };
 
   const upgradeUser = async (tier: 'creator' | 'director') => {
     if (!session?.user) return;
     const creditsToAdd = tier === 'creator' ? 1000 : 3500;
 
-    // Optimistic update
-    setUserState(prev => ({ ...prev, balance: prev.balance + creditsToAdd, isPro: true }));
+    setUserState(prev => ({ ...prev, balance: prev.balance + creditsToAdd, isPro: true, planType: tier }));
 
-    // Real update
     await supabase
       .from('profiles')
       .update({
         credits: userState.balance + creditsToAdd,
-        is_pro: true
+        is_pro: true,
+        plan_type: tier
       })
       .eq('id', session.user.id);
   };
 
+  // ... (enableGodMode) ...
   const enableGodMode = () => {
-    setUserState({ balance: 999999, isPro: true, isAdmin: true });
+    setUserState({ balance: 999999, isPro: true, isAdmin: true, monthlyUsage: 0, planType: 'director' });
   };
+
 
   // Safe Service Worker Cleanup
   useEffect(() => {
@@ -283,8 +273,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       toggleLang,
       updateSettings,
       deductCredits,
+      buyCredits,
       upgradeUser,
-      enableGodMode
+      enableGodMode,
+      isPricingOpen,
+      openPricingModal: () => setIsPricingOpen(true),
+      closePricingModal: () => setIsPricingOpen(false)
     }}>
       {children}
     </AppContext.Provider>

@@ -142,40 +142,35 @@ export const MODEL_COSTS: Record<VideoModel | 'DEFAULT', number> = {
   DEFAULT: 28
 };
 
-export const MODEL_METADATA: Record<VideoModel, { label: string; tags: string[]; audio?: boolean; badge?: string; priceLabel: string; costUsd: string }> = {
+export const MODEL_METADATA: Record<VideoModel, { label: string; tags: string[]; audio?: boolean; badge?: string; priceLabel: string }> = {
   wan_2_2_fast: {
     label: "Wan 2.2 Fast (Alibaba)",
     tags: ["⚡ 极速", "💰 最便宜"],
     badge: "💰 Budget",
-    priceLabel: "8 credits",
-    costUsd: "$0.05"
+    priceLabel: "8 credits"
   },
   hailuo_02_fast: {
     label: "Hailuo-02 Fast (MiniMax)",
     tags: ["⚡ 快速", "🎬 高质量"],
     badge: "⭐ 推荐",
-    priceLabel: "18 credits",
-    costUsd: "$0.12"
+    priceLabel: "18 credits"
   },
   seedance_lite: {
     label: "Seedance Lite (ByteDance)",
     tags: ["🎨 风格多样", "720p"],
-    priceLabel: "28 credits",
-    costUsd: "$0.18"
+    priceLabel: "28 credits"
   },
   kling_2_5: {
     label: "Kling 2.5 Turbo (快影)",
     tags: ["🏆 最佳物理", "🎬 电影级"],
     badge: "🔥 Pro",
-    priceLabel: "53 credits",
-    costUsd: "$0.35"
+    priceLabel: "53 credits"
   },
   hailuo_live: {
     label: "Hailuo Live (MiniMax)",
     tags: ["🎭 Live2D", "🎨 动画专用"],
     badge: "🎭 Live2D",
-    priceLabel: "75 credits",
-    costUsd: "$0.50"
+    priceLabel: "75 credits"
   }
 };
 
@@ -193,10 +188,32 @@ export const CREDIT_COSTS = {
   RES_1080P_EXTRA: 8
 };
 
+
+export const MODEL_MULTIPLIERS: Record<VideoModel, number> = {
+  wan_2_2_fast: 1.0,
+  hailuo_02_fast: 1.2,
+  seedance_lite: 1.3,
+  kling_2_5: 1.6,
+  hailuo_live: 2.0
+};
+
+export const CREDIT_PACKS = [
+  { id: 'pack_small', price: 5, credits: 500, label: 'Starter Pack' },
+  { id: 'pack_medium', price: 10, credits: 1200, label: 'Value Pack', popular: true },
+  { id: 'pack_large', price: 25, credits: 3500, label: 'Pro Pack' }
+];
+
+export const PLAN_LIMITS = {
+  creator: 1000,
+  director: 3500
+};
+
 export interface UserCreditState {
   balance: number;
   isPro: boolean;
   isAdmin?: boolean;
+  monthlyUsage: number;
+  planType: 'creator' | 'director';
 }
 
 export const STRIPE_PRICES = {

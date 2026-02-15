@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { SettingsIcon, SparklesIcon } from './IconComponents';
-import { Language, UserCreditState } from '../types';
+import { Language, UserCreditState, PLAN_LIMITS } from '../types';
 import { t } from '../i18n';
 
 interface HeaderProps {
@@ -13,12 +12,19 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ lang, toggleLang, onOpenSettings, userState, onUpgrade }) => {
-  
+
   const handleOpenKeySelector = async () => {
     if (typeof window !== 'undefined' && window.aistudio) {
       await window.aistudio.openSelectKey();
     }
   };
+
+  // Calculate Usage Percentage for Pro Users
+  const activeLimit = userState.planType ? PLAN_LIMITS[userState.planType] : 0;
+  const usagePercent = activeLimit > 0 ? Math.min(100, Math.round((userState.monthlyUsage / activeLimit) * 100)) : 0;
+
+  // Color logic for usage bar
+  const usageColor = usagePercent > 90 ? 'bg-red-500' : usagePercent > 70 ? 'bg-amber-500' : 'bg-indigo-500';
 
   return (
     <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
@@ -37,10 +43,26 @@ const Header: React.FC<HeaderProps> = ({ lang, toggleLang, onOpenSettings, userS
 
       {/* Right: Controls & Navigation */}
       <div className="flex items-center gap-3 bg-slate-900/50 p-1.5 rounded-xl border border-slate-800 backdrop-blur-sm">
-        
+
+        {/* Monthly Usage Bar (Pro Users Only) */}
+        {userState.isPro && activeLimit > 0 && (
+          <div className="hidden md:flex flex-col gap-1 mr-2 px-2 min-w-[100px]">
+            <div className="flex justify-between text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+              <span>Monthly Usage</span>
+              <span className={usagePercent > 90 ? 'text-red-400' : 'text-slate-400'}>{usagePercent}%</span>
+            </div>
+            <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+              <div
+                className={`h-full ${usageColor} transition-all duration-500`}
+                style={{ width: `${usagePercent}%` }}
+              />
+            </div>
+          </div>
+        )}
+
         {/* Only show paid key selection if Admin Mode is on */}
         {userState.isAdmin && (
-          <button 
+          <button
             onClick={handleOpenKeySelector}
             className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs text-indigo-300 rounded-lg border border-indigo-500/30 flex items-center gap-2 transition-all ml-1 mr-1"
           >
@@ -50,11 +72,11 @@ const Header: React.FC<HeaderProps> = ({ lang, toggleLang, onOpenSettings, userS
         )}
 
         {/* Credit Badge - Visible to ALL users (shows 50 by default) */}
-        <button 
+        <button
           onClick={onUpgrade}
           className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all group cursor-pointer mr-1
-            ${userState.isAdmin 
-              ? 'bg-slate-950 border-amber-500/50 shadow-lg shadow-amber-500/20' 
+            ${userState.isAdmin
+              ? 'bg-slate-950 border-amber-500/50 shadow-lg shadow-amber-500/20'
               : 'bg-slate-800 border-slate-700 hover:border-indigo-500/50'}
           `}
           title={userState.isAdmin ? "Admin Mode Active" : "Click to Upgrade"}
@@ -62,10 +84,10 @@ const Header: React.FC<HeaderProps> = ({ lang, toggleLang, onOpenSettings, userS
           <span className="text-lg">{userState.isAdmin ? '👑' : '💎'}</span>
           <div className="flex flex-col leading-none items-start">
             <div className="flex items-center gap-1">
-                <span className="font-bold text-white">{userState.balance}</span>
-                {userState.isAdmin && (
-                   <span className="text-[9px] bg-amber-500 text-black font-bold px-1 rounded ml-1">ADMIN</span>
-                )}
+              <span className="font-bold text-white">{userState.balance}</span>
+              {userState.isAdmin && (
+                <span className="text-[9px] bg-amber-500 text-black font-bold px-1 rounded ml-1">ADMIN</span>
+              )}
             </div>
             <span className="text-[10px] text-slate-500 uppercase tracking-wider group-hover:text-indigo-400 transition-colors">Credits</span>
           </div>
@@ -74,7 +96,7 @@ const Header: React.FC<HeaderProps> = ({ lang, toggleLang, onOpenSettings, userS
         <div className="w-px h-6 bg-slate-700 mx-1" />
 
         {/* Language Toggle */}
-        <button 
+        <button
           onClick={toggleLang}
           className="px-3 py-2 rounded-lg hover:bg-slate-800 text-slate-300 font-medium text-sm transition-colors"
         >
@@ -82,7 +104,7 @@ const Header: React.FC<HeaderProps> = ({ lang, toggleLang, onOpenSettings, userS
         </button>
 
         {/* Settings */}
-        <button 
+        <button
           onClick={onOpenSettings}
           className="p-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
           title={t(lang, 'settings')}

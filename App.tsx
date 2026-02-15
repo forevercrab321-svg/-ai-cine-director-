@@ -22,7 +22,10 @@ const MainLayout: React.FC = () => {
     toggleLang,
     updateSettings,
     upgradeUser,
-    enableGodMode
+    enableGodMode,
+    isPricingOpen,
+    openPricingModal,
+    closePricingModal
   } = useAppContext();
 
   const [workflowStage, setWorkflowStage] = useState<'input' | 'scripting' | 'production'>('input');
@@ -33,7 +36,7 @@ const MainLayout: React.FC = () => {
   const [extractedAnchor, setExtractedAnchor] = useState<string>("");
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isPricingOpen, setIsPricingOpen] = useState(false);
+  // const [isPricingOpen, setIsPricingOpen] = useState(false); // Moved to Context
 
   const handleGenerateScript = async () => {
     if (!storyIdea.trim()) return;
@@ -108,7 +111,7 @@ const MainLayout: React.FC = () => {
       />
 
       <PricingModal
-        isOpen={isPricingOpen} onClose={() => setIsPricingOpen(false)}
+        isOpen={isPricingOpen} onClose={closePricingModal}
         onUpgrade={async (tier) => upgradeUser(tier)}
       />
 
@@ -118,7 +121,7 @@ const MainLayout: React.FC = () => {
           toggleLang={toggleLang}
           onOpenSettings={() => setIsSettingsOpen(true)}
           userState={userState}
-          onUpgrade={() => setIsPricingOpen(true)}
+          onUpgrade={openPricingModal}
         />
 
         <div className="mb-8 flex items-center justify-between animate-in fade-in duration-700">
