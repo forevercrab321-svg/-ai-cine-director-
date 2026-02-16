@@ -132,9 +132,14 @@ const SceneCard: React.FC<SceneCardProps> = ({
     }
 
     const cost = imageModel === 'flux_schnell' ? CREDIT_COSTS.IMAGE_FLUX_SCHNELL : CREDIT_COSTS.IMAGE_FLUX;
-    if (!userState.isAdmin && userCredits < cost) {
-      openPricingModal();
-      return;
+
+    // ★ Atomic deduct via ref — prevents rapid-click race condition
+    if (!userState.isAdmin) {
+      const canDeduct = await onDeductCredits(cost);
+      if (!canDeduct) {
+        openPricingModal();
+        return;
+      }
     }
 
     setIsImageLoading(true);
@@ -153,7 +158,7 @@ const SceneCard: React.FC<SceneCardProps> = ({
         characterAnchor
       );
 
-      onDeductCredits(cost);
+      // Credits already deducted above
       onImageGenerated(resultImageUrl);
     } catch (e: any) {
       console.error("Image Gen Error:", e);

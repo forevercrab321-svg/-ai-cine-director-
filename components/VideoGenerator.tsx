@@ -92,9 +92,14 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ project, onBackToScript
 
     const executeImageGeneration = async (scene: Scene) => {
         const cost = settings.imageModel === 'flux_schnell' ? CREDIT_COSTS.IMAGE_FLUX_SCHNELL : CREDIT_COSTS.IMAGE_FLUX;
-        if (!userState.isAdmin && userState.balance < cost) {
-            openPricingModal();
-            throw new Error("Insufficient credits");
+
+        // ★ Use deductCredits (which uses ref) as the ONLY credit check
+        if (!userState.isAdmin) {
+            const canDeduct = await deductCredits(cost);
+            if (!canDeduct) {
+                openPricingModal();
+                throw new Error("Insufficient credits");
+            }
         }
 
         setSceneStatus(prev => ({ ...prev, [scene.scene_number]: { status: 'image_gen', message: '🎨 Generating Image...' } }));
@@ -109,7 +114,7 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ project, onBackToScript
                 project.character_anchor
             );
 
-            deductCredits(cost);
+            // Credits already deducted above
             setSceneImages(prev => ({ ...prev, [scene.scene_number]: url }));
             setSceneStatus(prev => ({ ...prev, [scene.scene_number]: { status: 'ready', message: 'Image Ready' } }));
             return url;
@@ -127,8 +132,6 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ project, onBackToScript
         const total = project.scenes.length;
         setImageProgress({ completed, total });
 
-        let currentBalance = userState.balance; // Local tracking
-
         for (const scene of project.scenes) {
             if (sceneImages[scene.scene_number]) {
                 completed++;
@@ -136,17 +139,13 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ project, onBackToScript
                 continue;
             }
 
-            // Check local balance
-            const cost = settings.imageModel === 'flux_schnell' ? CREDIT_COSTS.IMAGE_FLUX_SCHNELL : CREDIT_COSTS.IMAGE_FLUX;
-            if (!userState.isAdmin && currentBalance < cost) {
-                openPricingModal();
-                break; // Stop processing
-            }
-
             try {
+                // executeImageGeneration now handles credit check atomically via ref
                 await executeImageGeneration(scene);
-                currentBalance -= cost; // Update local tracker
-            } catch (e) {
+            } catch (e: any) {
+                if (e.message === "Insufficient credits") {
+                    break; // Stop batch, modal already opened
+                }
                 console.error(e);
             }
             completed++;
@@ -158,8 +157,6 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ project, onBackToScript
     const handleRenderVideos = async () => {
         if (!isAuthenticated) return alert("Please sign in to generate videos.");
 
-        let currentBalance = userState.balance; // Local tracking
-
         for (const scene of project.scenes) {
             const sNum = scene.scene_number;
             if (activeVideoJobs[sNum] || sceneStatus[sNum]?.status === 'done') continue;
@@ -167,15 +164,10 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ project, onBackToScript
             let imgUrl = sceneImages[sNum];
             if (!imgUrl) {
                 try {
-                    // Check balance for image gen if needed
-                    const imgCost = settings.imageModel === 'flux_schnell' ? CREDIT_COSTS.IMAGE_FLUX_SCHNELL : CREDIT_COSTS.IMAGE_FLUX;
-                    if (!userState.isAdmin && currentBalance < imgCost) {
-                        openPricingModal();
-                        break;
-                    }
+                    // executeImageGeneration handles credit check via ref
                     imgUrl = await executeImageGeneration(scene);
-                    currentBalance -= imgCost;
-                } catch (e) {
+                } catch (e: any) {
+                    if (e.message === "Insufficient credits") break;
                     continue;
                 }
             }
@@ -184,9 +176,13 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ project, onBackToScript
             const multiplier = MODEL_MULTIPLIERS[settings.videoModel] || 1.0;
             const finalCost = Math.ceil(baseCost * multiplier);
 
-            if (!userState.isAdmin && currentBalance < finalCost) {
-                openPricingModal();
-                break;
+            // ★ Atomic deduct via ref
+            if (!userState.isAdmin) {
+                const canDeduct = await deductCredits(finalCost, { model: settings.videoModel, base: baseCost, mult: multiplier });
+                if (!canDeduct) {
+                    openPricingModal();
+                    break;
+                }
             }
 
             try {
@@ -203,9 +199,7 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ project, onBackToScript
                     project.character_anchor
                 );
 
-                deductCredits(finalCost, { model: settings.videoModel, base: baseCost, mult: multiplier });
-                currentBalance -= finalCost; // Update local tracker
-
+                // Credits already deducted above
                 setActiveVideoJobs(prev => ({ ...prev, [sNum]: { id: res.id, startTime: Date.now() } }));
                 setScenePredictionIds(prev => ({ ...prev, [sNum]: res.id }));
                 setSceneStatus(prev => ({ ...prev, [sNum]: { status: 'starting', message: '🚀 Sent to Replicate' } }));
@@ -227,9 +221,13 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ project, onBackToScript
         const multiplier = MODEL_MULTIPLIERS[settings.videoModel] || 1.0;
         const finalCost = Math.ceil(baseCost * multiplier);
 
-        if (!userState.isAdmin && userState.balance < finalCost) {
-            openPricingModal();
-            return;
+        // ★ Atomic deduct via ref
+        if (!userState.isAdmin) {
+            const canDeduct = await deductCredits(finalCost, { model: settings.videoModel, base: baseCost, mult: multiplier });
+            if (!canDeduct) {
+                openPricingModal();
+                return;
+            }
         }
 
         setSceneStatus(prev => ({ ...prev, [sceneNum]: { status: 'queued', message: 'Starting...' } }));
@@ -246,7 +244,7 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ project, onBackToScript
                 settings.videoResolution,
                 project.character_anchor
             );
-            deductCredits(finalCost, { model: settings.videoModel, base: baseCost, mult: multiplier });
+            // Credits already deducted above
             setActiveVideoJobs(prev => ({ ...prev, [sceneNum]: { id: res.id, startTime: Date.now() } }));
             setScenePredictionIds(prev => ({ ...prev, [sceneNum]: res.id }));
             setSceneStatus(prev => ({ ...prev, [sceneNum]: { status: 'starting', message: '🚀 Started' } }));

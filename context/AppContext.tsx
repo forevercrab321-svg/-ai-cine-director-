@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { UserCreditState, Language, ImageModel, VideoModel, VideoStyle, AspectRatio, VideoQuality, VideoDuration, VideoFps, VideoResolution, MODEL_COSTS } from '../types';
 
@@ -82,6 +82,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     planType: 'creator'
   });
 
+  // ★ CRITICAL: Real-time balance ref for atomic credit checks
+  // React state is stale in closures — this ref is the ONLY source of truth
+  // for synchronous balance checking in deductCredits
+  const balanceRef = useRef(0);
+
   const [settings, setSettings] = useState<AppSettings>(defaultSettings);
 
   const updateSettings = (newSettings: Partial<AppSettings>) => {
@@ -107,11 +112,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
       if (data) {
         // Auto-topup REMOVED to fix infinite credit bug
-        // if (balance < 5) ...
 
         setProfile({ id: data.id, name: data.name, role: data.role });
+        const newBalance = data.credits;
+        balanceRef.current = newBalance; // ★ Sync ref immediately
         setUserState({
-          balance: data.credits,
+          balance: newBalance,
           isPro: data.is_pro,
           isAdmin: data.is_admin,
           monthlyUsage: data.monthly_credits_used || 0,
@@ -160,49 +166,52 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const deductCredits = async (amount: number, details?: { model: string, base: number, mult: number }): Promise<boolean> => {
     if (userState.isAdmin) return true;
-    if (userState.balance < amount) return false;
 
-    if (session?.user) {
-      // Call updated RPC with logging details
-      const { error } = await supabase.rpc('deduct_credits', {
-        amount_to_deduct: amount,
-        model_used: details?.model || 'unknown',
-        base_cost: details?.base || 0,
-        multiplier: details?.mult || 1
-      });
-
-      if (error) {
-        // Fallback: direct update if RPC fails or not deployed
-        console.warn("RPC failed, using direct update fallback", error);
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({
-            credits: userState.balance - amount,
-            monthly_credits_used: userState.monthlyUsage + amount
-          })
-          .eq('id', session.user.id);
-
-        if (updateError) {
-          console.error("Failed to deduct credits", updateError);
-          return false;
-        }
-      }
-
-      // Optimistic update
-      setUserState(prev => ({
-        ...prev,
-        balance: prev.balance - amount,
-        monthlyUsage: prev.monthlyUsage + amount
-      }));
-      return true;
+    // ★ CRITICAL: Use ref for atomic check-and-deduct (NOT React state!)
+    // React state is stale in closures during async loops and rapid clicks.
+    // The ref is the ONLY reliable way to prevent negative balances.
+    if (balanceRef.current < amount) {
+      console.warn(`[CREDIT GUARD] Blocked: ref=${balanceRef.current}, need=${amount}`);
+      return false;
     }
 
-    // Fallback for non-session (shouldn't happen in prod)
+    // ★ Synchronously deduct from ref BEFORE any async work
+    // This ensures the next call (even in the same tick) sees the reduced balance
+    balanceRef.current -= amount;
+    console.log(`[CREDIT DEDUCT] Deducted ${amount}, ref now=${balanceRef.current}`);
+
+    // Update React state for UI
     setUserState(prev => ({
       ...prev,
-      balance: prev.balance - amount,
+      balance: balanceRef.current, // Use ref as source of truth
       monthlyUsage: prev.monthlyUsage + amount
     }));
+
+    // Persist to database (fire-and-forget, ref already updated)
+    if (session?.user) {
+      try {
+        const { error } = await supabase.rpc('deduct_credits', {
+          amount_to_deduct: amount,
+          model_used: details?.model || 'unknown',
+          base_cost: details?.base || 0,
+          multiplier: details?.mult || 1
+        });
+
+        if (error) {
+          console.warn("RPC failed, using direct update fallback", error);
+          await supabase
+            .from('profiles')
+            .update({
+              credits: balanceRef.current,
+              monthly_credits_used: userState.monthlyUsage + amount
+            })
+            .eq('id', session.user.id);
+        }
+      } catch (e) {
+        console.error("DB deduct error (ref already updated)", e);
+      }
+    }
+
     return true;
   };
 
@@ -225,14 +234,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         .eq('id', session.user.id);
     }
 
-    setUserState(prev => ({ ...prev, balance: prev.balance + amount }));
+    balanceRef.current += amount; // ★ Sync ref
+    setUserState(prev => ({ ...prev, balance: balanceRef.current }));
   };
 
   const upgradeUser = async (tier: 'creator' | 'director') => {
     if (!session?.user) return;
     const creditsToAdd = tier === 'creator' ? 1000 : 3500;
 
-    setUserState(prev => ({ ...prev, balance: prev.balance + creditsToAdd, isPro: true, planType: tier }));
+    balanceRef.current += creditsToAdd; // ★ Sync ref
+    setUserState(prev => ({ ...prev, balance: balanceRef.current, isPro: true, planType: tier }));
 
     await supabase
       .from('profiles')
@@ -246,6 +257,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // ... (enableGodMode) ...
   const enableGodMode = () => {
+    balanceRef.current = 999999; // ★ Sync ref
     setUserState({ balance: 999999, isPro: true, isAdmin: true, monthlyUsage: 0, planType: 'director' });
   };
 
