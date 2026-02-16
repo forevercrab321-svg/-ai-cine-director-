@@ -122,8 +122,8 @@ const SceneCard: React.FC<SceneCardProps> = ({
 
   // Calculate costs
   const videoBaseCost = MODEL_COSTS[videoModel] || 28;
-  const videoMultiplier = MODEL_MULTIPLIERS[videoModel] || 1.0;
-  const videoCost = Math.ceil(videoBaseCost * videoMultiplier);
+  // Removed redundant multiplier to match VideoGenerator logic and UI display
+  const videoCost = videoBaseCost;
 
   const handleGenerateImage = async () => {
     if (!isAuthenticated) {

@@ -173,12 +173,13 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ project, onBackToScript
             }
 
             const baseCost = MODEL_COSTS[settings.videoModel] || 28;
-            const multiplier = MODEL_MULTIPLIERS[settings.videoModel] || 1.0;
-            const finalCost = Math.ceil(baseCost * multiplier);
+            // Removed redundant model multiplier that was inflating costs (e.g. 18 * 1.2 = 22)
+            // The MODEL_COSTS values (18) are already the final intended price.
+            const finalCost = baseCost;
 
             // ★ Atomic deduct via ref
             if (!userState.isAdmin) {
-                const canDeduct = await deductCredits(finalCost, { model: settings.videoModel, base: baseCost, mult: multiplier });
+                const canDeduct = await deductCredits(finalCost, { model: settings.videoModel, base: baseCost, mult: 1 });
                 if (!canDeduct) {
                     openPricingModal();
                     break;
@@ -218,12 +219,12 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ project, onBackToScript
         if (!scene || !imgUrl) return;
 
         const baseCost = MODEL_COSTS[settings.videoModel] || 28;
-        const multiplier = MODEL_MULTIPLIERS[settings.videoModel] || 1.0;
-        const finalCost = Math.ceil(baseCost * multiplier);
+        // Removed redundant multiplier
+        const finalCost = baseCost;
 
         // ★ Atomic deduct via ref
         if (!userState.isAdmin) {
-            const canDeduct = await deductCredits(finalCost, { model: settings.videoModel, base: baseCost, mult: multiplier });
+            const canDeduct = await deductCredits(finalCost, { model: settings.videoModel, base: baseCost, mult: 1 });
             if (!canDeduct) {
                 openPricingModal();
                 return;
